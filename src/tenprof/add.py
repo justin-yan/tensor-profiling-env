@@ -96,6 +96,30 @@ def benchmark(size, provider):
     return gbps(ms), gbps(max_ms), gbps(min_ms)
 
 
+@triton.testing.perf_report(
+    triton.testing.Benchmark(
+        x_names=['size'],  # Argument names to use as an x-axis for the plot.
+        x_vals=[2**i for i in range(10, 20, 1)],  # Different possible values for `x_name`.
+        x_log=True,  # x axis is logarithmic.
+        line_arg='provider',  # Argument name whose value corresponds to a different line in the plot.
+        line_vals=['triton', 'torch'],  # Possible values for `line_arg`.
+        line_names=['Triton', 'Torch'],  # Label name for the lines.
+        styles=[('blue', '-'), ('green', '-')],  # Line styles.
+        ylabel='ms',  # Label name for the y-axis.
+        plot_name='vector-add-performance-ms',  # Name for the plot. Used also as a file name for saving the plot.
+        args={},  # Values for function arguments not in `x_names` and `y_name`.
+    ))
+def benchmark_ms(size, provider):
+    a = torch.rand(size, device='cuda', dtype=torch.float32)
+    b = torch.rand(size, device='cuda', dtype=torch.float32)
+    quantiles = [0.5, 0.2, 0.8]
+    if provider == 'torch':
+        ms, min_ms, max_ms = triton.testing.do_bench(lambda: torch_add_many(a, b), quantiles=quantiles)
+    if provider == 'triton':
+        ms, min_ms, max_ms = triton.testing.do_bench(lambda: add_many(a, b), quantiles=quantiles)
+    return ms
+
+
 if __name__ == "__main__":
     torch.manual_seed(0)
     size = 98432
@@ -108,9 +132,10 @@ if __name__ == "__main__":
     print(f'The maximum difference between torch and triton is '
           f'{torch.max(torch.abs(output_torch - output_triton))}')
 
-    benchmark.run(print_data=True, show_plots=True)
+    benchmark.run(print_data=True, save_path="/tmp")
+    benchmark_ms.run(print_data=True, save_path="/tmp")
 
-    with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True, profile_memory=True) as prof:
+    with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True, profile_memory=True, with_flops=True) as prof:
         with record_function("torch"):
             torch_add_many(x, y)
         with record_function("triton"):
@@ -118,4 +143,3 @@ if __name__ == "__main__":
 
     print(prof.key_averages())
     prof.export_chrome_trace("trace.json")
-
