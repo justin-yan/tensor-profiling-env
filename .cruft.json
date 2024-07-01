@@ -1,0 +1,15 @@
+{
+  "template": "git+ssh://git@github.com/justin-yan/templates-cruft",
+  "commit": "3f8cc0c018f8add353f0add2c345d7b44525b3c3",
+  "checkout": null,
+  "context": {
+    "cookiecutter": {
+      "package_name": "tenprof",
+      "github_username": "@justin-yan",
+      "copyright_start_year": "2024",
+      "copyright_full_name": "Justin Yan",
+      "_template": "git+ssh://git@github.com/justin-yan/templates-cruft"
+    }
+  },
+  "directory": "packages-public/python-standard"
+}

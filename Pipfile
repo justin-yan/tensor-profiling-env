@@ -1,0 +1,27 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+tenprof = { editable = true, path = "." }
+
+[dev-packages]
+pytest = ">5"
+hypothesis = ">5"
+coverage = ">5"
+ruff = ">0.2.1"
+mypy = ">1.2"
+build = ">0.8"
+twine = ">3"
+
+[requires]
+python_version = "3.11.4"
+
+#######
+### Custom Directives Section Begin
+#######
+
+#######
+### Custom Directives Section End
+#######
