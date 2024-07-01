@@ -110,7 +110,7 @@ if __name__ == "__main__":
 
     benchmark.run(print_data=True, show_plots=True)
 
-    with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True, profile_memory=True) as >
+    with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True, profile_memory=True) as prof:
         with record_function("torch"):
             torch_add_many(x, y)
         with record_function("triton"):
