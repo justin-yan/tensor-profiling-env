@@ -8,6 +8,8 @@ import torch
 import triton
 import triton.language as tl
 
+from torch.profiler import profile, record_function, ProfilerActivity
+
 
 @triton.jit
 def add_many_kernel(x_ptr,  # *Pointer* to first input vector.
@@ -50,16 +52,29 @@ def add_many(x: torch.Tensor, y: torch.Tensor):
     #  - Each torch.tensor object is implicitly converted into a pointer to its first element.
     #  - `triton.jit`'ed functions can be indexed with a launch grid to obtain a callable GPU kernel.
     #  - Don't forget to pass meta-parameters as keywords arguments.
-    add_many_kernel[grid](x, y, output, n_elements, BLOCK_SIZE=1024)
+    add_many_kernel[grid](x, y, output, n_elements, BLOCK_SIZE=256)
     # We return a handle to z but, since `torch.cuda.synchronize()` hasn't been called, the kernel is still
     # running asynchronously at this point.
     return output
 
 
+def torch_add_many(x, y):
+    out = x + y
+    a = out + y
+    b = a + y
+    c = b + y
+    d = c + y
+    e = d + y
+    f = e + y
+    g = f + y
+    h = g + y
+    return h
+
+
 @triton.testing.perf_report(
     triton.testing.Benchmark(
         x_names=['size'],  # Argument names to use as an x-axis for the plot.
-        x_vals=[2**i for i in range(12, 28, 1)],  # Different possible values for `x_name`.
+        x_vals=[2**i for i in range(10, 20, 1)],  # Different possible values for `x_name`.
         x_log=True,  # x axis is logarithmic.
         line_arg='provider',  # Argument name whose value corresponds to a different line in the plot.
         line_vals=['triton', 'torch'],  # Possible values for `line_arg`.
@@ -70,13 +85,13 @@ def add_many(x: torch.Tensor, y: torch.Tensor):
         args={},  # Values for function arguments not in `x_names` and `y_name`.
     ))
 def benchmark(size, provider):
-    x = torch.rand(size, device='cuda', dtype=torch.float32)
-    y = torch.rand(size, device='cuda', dtype=torch.float32)
+    a = torch.rand(size, device='cuda', dtype=torch.float32)
+    b = torch.rand(size, device='cuda', dtype=torch.float32)
     quantiles = [0.5, 0.2, 0.8]
     if provider == 'torch':
-        ms, min_ms, max_ms = triton.testing.do_bench(lambda: x + y + y + y + y + y + y + y + y + y, quantiles=quantiles)
+        ms, min_ms, max_ms = triton.testing.do_bench(lambda: torch_add_many(a, b), quantiles=quantiles)
     if provider == 'triton':
-        ms, min_ms, max_ms = triton.testing.do_bench(lambda: add(x, y), quantiles=quantiles)
+        ms, min_ms, max_ms = triton.testing.do_bench(lambda: add_many(a, b), quantiles=quantiles)
     gbps = lambda ms: 3 * x.numel() * x.element_size() / ms * 1e-6
     return gbps(ms), gbps(max_ms), gbps(min_ms)
 
@@ -86,7 +101,7 @@ if __name__ == "__main__":
     size = 98432
     x = torch.rand(size, device='cuda')
     y = torch.rand(size, device='cuda')
-    output_torch = x + y + y + y + y + y + y + y + y + y
+    output_torch = torch_add_many(x, y)
     output_triton = add_many(x, y)
     print(output_torch)
     print(output_triton)
@@ -94,3 +109,13 @@ if __name__ == "__main__":
           f'{torch.max(torch.abs(output_torch - output_triton))}')
 
     benchmark.run(print_data=True, show_plots=True)
+
+    with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True, profile_memory=True) as >
+        with record_function("torch"):
+            torch_add_many(x, y)
+        with record_function("triton"):
+            add_many(x, y)
+
+    print(prof.key_averages())
+    prof.export_chrome_trace("trace.json")
+

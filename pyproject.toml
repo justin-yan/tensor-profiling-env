@@ -13,6 +13,8 @@ dependencies = [
     "torch",
     "fvcore",
     "triton",
+    "matplotlib",
+    "pandas",
     ######
     ### Custom Dependencies Section End
     ######
