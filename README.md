@@ -17,3 +17,23 @@ To get these raw resource readouts, use the basic profilers:
 - fvcore flop counter
 
 It's possible that you may identify a problematic layer that you need to drop to an even lower level to understand (e.g. is it slow because your register caching strategy isn't working as expected?), at which point you'll need to drop down to using the NVidia profilers.
+
+## Layer Profiler
+
+Basic inner implementation:
+
+- Given a concrete instance of a layer that is jaxtyped,
+- Auto-generate inputs for the layer.
+
+## Backlog
+
+- For forward and backward passes (broken out):
+  - Count FLOPS
+  - Calculate wall clock time
+  - Profile memory usage and get overall counts
+
+- Create a small grid for each input size dimension.
+  - Or follow something like property-based testing and scale up sizes until bottlenecks are reached?
+- Create a small grid for different hyperparameters in the layer constructor(?)
+  - Allow for partially applied layers?
+- Allow for more flexible layer dtype defaults, and selecting input tensor dtypes to match.
